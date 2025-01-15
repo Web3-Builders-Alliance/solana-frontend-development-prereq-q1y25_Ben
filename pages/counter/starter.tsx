@@ -133,6 +133,39 @@ const Finished = () => {
     }
   };
 
+  // helper function to decrement the counter we just created
+  const handleDecrementCounter = async () => {
+    // if no connection or pubkey found, error toast the user
+    if (!connection || !publicKey) {
+      toast.error("Please connect your wallet.");
+      return;
+    }
+
+    // call transaction builder helper function to create transaction object
+    const transaction = await getPreparedTransaction();
+
+    // call the decrement instruction method from the program's idl
+    const instruction = await counterProgram.methods
+      .decrement()
+      .accounts({
+        counter: new PublicKey(counterKey),
+      })
+      .instruction();
+    transaction.add(instruction);
+
+    // try block to sign, and send the transaction. no additional signers added
+    try {
+      const signature = await provider.sendAndConfirm(transaction, [], {
+        skipPreflight: true,
+      });
+      // update txsig state
+      setTxSig(signature);
+    } catch (error) {
+      console.log(error);
+      toast.error("Transaction failed!");
+    }
+  };
+
   // react useEffect hook to update state if conncetion, pubkey, counterkey, or txsig change
   useEffect(() => {
     const getInfo = async () => {
@@ -203,6 +236,19 @@ const Finished = () => {
                 border-2 border-transparent hover:border-[#fa6ece]`}
             >
               Increment Counter
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                handleDecrementCounter();
+              }}
+              // button is disabled if there is no pubkey connected or counterkey
+              disabled={!publicKey || !counterKey}
+              className={`disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#fa6ece] bg-[#fa6ece] 
+                rounded-lg w-auto py-1 font-semibold transition-all duration-200 hover:bg-transparent 
+                border-2 border-transparent hover:border-[#fa6ece]`}
+            >
+              Decrement Counter
             </button>
           </div>
           <div className="text-sm font-semibold mt-8 bg-[#222524] border-2 border-gray-500 rounded-lg p-2">
